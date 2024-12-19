@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
+import { FaStar, FaRegStar } from 'react-icons/fa'; // Ikon bintang untuk rating
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -55,15 +56,26 @@ const ProductDetail = () => {
     setTimeout(() => setShowNotification(null), 3000);
   };
 
+  const renderRating = (rating) => {
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+      stars.push(
+        i <= Math.round(rating) ? (
+          <FaStar key={i} className="text-yellow-500" />
+        ) : (
+          <FaRegStar key={i} className="text-yellow-500" />
+        )
+      );
+    }
+    return stars;
+  };
+
   if (!product) {
-    return <div>Loading...</div>;
+    return <div className="text-center mt-10">Loading...</div>;
   }
 
   return (
-    <div
-      className="flex items-center justify-center min-h-screen bg-cover bg-center"
-      style={{ backgroundImage: "url('https://images.unsplash.com/photo-1479064555552-3ef4979f8908?q=80&w=2670&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D')" }}
-    >
+    <div className="flex items-center justify-center min-h-screen p-4 bg-gray-100">
       {showNotification && (
         <div
           className={`fixed top-10 left-1/2 transform -translate-x-1/2 ${
@@ -74,21 +86,32 @@ const ProductDetail = () => {
         </div>
       )}
 
-      <div className="max-w-3xl w-full bg-white shadow-md rounded-lg overflow-hidden">
+      <div className="max-w-4xl w-full bg-white shadow-lg rounded-lg overflow-hidden">
         <div className="flex flex-col md:flex-row">
+          {/* Gambar Produk */}
           <div className="flex-shrink-0 w-full md:w-1/2">
             <img
               src={product.image}
               alt={product.title}
-              className="w-full h-full object-contain p-4"
+              className="w-full h-full object-contain p-6"
             />
           </div>
+
+          {/* Detail Produk */}
           <div className="p-6 flex flex-col justify-between">
             <div>
-              <h1 className="text-2xl font-bold mb-4">{product.title}</h1>
-              <p className="text-xl text-gray-700 font-semibold mb-4">${product.price}</p>
-              <p className="text-gray-600">{product.description}</p>
+              <h1 className="text-3xl font-bold mb-2">{product.title}</h1>
+              <div className="flex items-center mb-4">
+                <div className="flex">{renderRating(product.rating.rate)}</div>
+                <span className="ml-2 text-gray-600">
+                  ({product.rating.count} reviews)
+                </span>
+              </div>
+              <p className="text-xl text-gray-800 font-semibold mb-4">${product.price}</p>
+              <p className="text-gray-600 mb-4">{product.description}</p>
             </div>
+
+            {/* Tambahkan ke Keranjang */}
             <div className="mt-6">
               <div className="flex items-center mb-4">
                 <label htmlFor="quantity" className="mr-2 font-medium">

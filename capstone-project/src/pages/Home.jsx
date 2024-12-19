@@ -66,9 +66,6 @@ const Home = () => {
         <p className="text-lg mb-4">
           Discover amazing products at unbeatable prices! Shop now and get exclusive deals!
         </p>
-        <button className="bg-yellow-500 text-black py-2 px-6 rounded-full text-lg hover:bg-yellow-600">
-          Shop Now
-        </button>
       </div>
 
       {/* Notification Card */}

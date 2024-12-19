@@ -22,7 +22,7 @@ const Login = () => {
   useEffect(() => {
     if (user) {
       const lastPath = localStorage.getItem('lastPath') || '/';
-      window.location.href = lastPath === '/login' ? '/' : lastPath; // Redirect after login
+      window.location.href = lastPath === '/login' ? '/' : lastPath;
     }
   }, [user]);
 
