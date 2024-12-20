@@ -35,7 +35,6 @@ const Login = () => {
 
   return (
     <div className="flex min-h-screen bg-slate-100">
-      {/* Icon Section (Left side) */}
       <div className="flex-1 flex justify-center items-center bg-gray-800 text-white">
         <div className="text-center">
           <FaStore size={150} className="mb-6" />
@@ -43,7 +42,6 @@ const Login = () => {
         </div>
       </div>
 
-      {/* Login Form Section (Right side) */}
       <div className="flex-1 flex justify-center items-center p-8">
         <div className="bg-white shadow-lg rounded-lg p-8 max-w-sm w-full">
           {notification && (

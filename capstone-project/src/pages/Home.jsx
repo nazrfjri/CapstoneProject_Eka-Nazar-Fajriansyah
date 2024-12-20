@@ -11,7 +11,6 @@ const Home = () => {
   const [showNotification, setShowNotification] = React.useState(null);
   const token = localStorage.getItem('token');
 
-  // Mengambil data produk saat komponen pertama kali dimuat
   useEffect(() => {
     if (status === 'idle') {
       dispatch(fetchProducts());
