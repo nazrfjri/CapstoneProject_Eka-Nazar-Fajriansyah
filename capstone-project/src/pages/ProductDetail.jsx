@@ -1,25 +1,25 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FaStar, FaRegStar } from 'react-icons/fa'; // Ikon bintang untuk rating
+import { FaStar, FaRegStar } from 'react-icons/fa';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchProducts } from '../redux/slices/productSlice';
 
 const ProductDetail = () => {
   const { id } = useParams();
-  const [product, setProduct] = useState(null);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
   const [showNotification, setShowNotification] = useState(null);
-  const navigate = useNavigate();
+
+  const product = useSelector((state) =>
+    state.product.items.find((item) => item.id === parseInt(id))
+  );
 
   useEffect(() => {
-    axios
-      .get(`https://fakestoreapi.com/products/${id}`)
-      .then((response) => {
-        setProduct(response.data);
-      })
-      .catch((error) => {
-        console.log('Error fetching product details', error);
-      });
-  }, [id]);
+    if (!product) {
+      dispatch(fetchProducts());
+    }
+  }, [product, id, dispatch]);
 
   const handleAddToCart = () => {
     const isLoggedIn = localStorage.getItem('token');
@@ -30,29 +30,34 @@ const ProductDetail = () => {
 
     const cart = JSON.parse(localStorage.getItem('cart')) || [];
     const existingItem = cart.find((item) => item.id === product.id);
-    let updatedCart;
 
-    if (existingItem) {
-      const newQuantity = existingItem.quantity + quantity;
-      if (newQuantity > 20) {
-        setShowNotification({ type: 'error', message: 'Stock limit reached!' });
-        setTimeout(() => setShowNotification(null), 3000);
-        return;
-      }
-      updatedCart = cart.map((item) =>
-        item.id === product.id ? { ...item, quantity: newQuantity } : item
-      );
-    } else {
-      if (quantity > 20) {
-        setShowNotification({ type: 'error', message: 'Stock limit reached!' });
-        setTimeout(() => setShowNotification(null), 3000);
-        return;
-      }
-      updatedCart = [...cart, { ...product, quantity }];
+    // Check stock limit or total cart quantity
+    const totalQuantity = existingItem ? existingItem.quantity + quantity : quantity;
+    if (totalQuantity > product.stock) {
+      setShowNotification({
+        type: 'error',
+        message: 'Stock tidak mencukupi untuk checkout!',
+      });
+      setTimeout(() => setShowNotification(null), 3000);
+      return;
     }
 
-    localStorage.setItem('cart', JSON.stringify(updatedCart));
-    setShowNotification({ type: 'success', message: 'Item successfully added to cart!' });
+    if (existingItem) {
+      // update quantity
+      const updatedCart = cart.map((item) =>
+        item.id === product.id ? { ...item, quantity: totalQuantity } : item
+      );
+      localStorage.setItem('cart', JSON.stringify(updatedCart));
+    } else {
+      // add quantity
+      const updatedCart = [...cart, { ...product, quantity }];
+      localStorage.setItem('cart', JSON.stringify(updatedCart));
+    }
+
+    setShowNotification({
+      type: 'success',
+      message: 'Item successfully added to cart!',
+    });
     setTimeout(() => setShowNotification(null), 3000);
   };
 
@@ -88,7 +93,6 @@ const ProductDetail = () => {
 
       <div className="max-w-4xl w-full bg-white shadow-lg rounded-lg overflow-hidden">
         <div className="flex flex-col md:flex-row">
-          {/* Gambar Produk */}
           <div className="flex-shrink-0 w-full md:w-1/2">
             <img
               src={product.image}
@@ -97,7 +101,6 @@ const ProductDetail = () => {
             />
           </div>
 
-          {/* Detail Produk */}
           <div className="p-6 flex flex-col justify-between">
             <div>
               <h1 className="text-3xl font-bold mb-2">{product.title}</h1>
@@ -111,7 +114,6 @@ const ProductDetail = () => {
               <p className="text-gray-600 mb-4">{product.description}</p>
             </div>
 
-            {/* Tambahkan ke Keranjang */}
             <div className="mt-6">
               <div className="flex items-center mb-4">
                 <label htmlFor="quantity" className="mr-2 font-medium">

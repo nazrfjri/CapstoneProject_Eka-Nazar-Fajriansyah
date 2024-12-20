@@ -7,9 +7,11 @@ const Home = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { items: products, status, error } = useSelector((state) => state.product);
+  const [cart, setCart] = React.useState(JSON.parse(localStorage.getItem('cart')) || []);
   const [showNotification, setShowNotification] = React.useState(null);
   const token = localStorage.getItem('token');
 
+  // Mengambil data produk saat komponen pertama kali dimuat
   useEffect(() => {
     if (status === 'idle') {
       dispatch(fetchProducts());
@@ -31,14 +33,14 @@ const Home = () => {
       return;
     }
 
-    const cart = JSON.parse(localStorage.getItem('cart')) || [];
     const existingItem = cart.find((item) => item.id === product.id);
     let updatedCart;
 
+    // Validasi stok produk sebelum ditambahkan ke keranjang
     if (existingItem) {
       const newQuantity = existingItem.quantity + 1;
-      if (newQuantity > 20) {
-        setShowNotification({ type: 'error', message: 'Stock limit reached!' });
+      if (newQuantity > product.stock) {
+        setShowNotification({ type: 'error', message: 'Batas stok melebihi (jumlah maksimum stock adalah 20)! ' });
         setTimeout(() => setShowNotification(null), 3000);
         return;
       }
@@ -46,9 +48,16 @@ const Home = () => {
         item.id === product.id ? { ...item, quantity: newQuantity } : item
       );
     } else {
+      if (product.stock <= 0) {
+        setShowNotification({ type: 'error', message: 'Stock tidak mencukupi untuk checkout!' });
+        setTimeout(() => setShowNotification(null), 3000);
+        return;
+      }
+
       updatedCart = [...cart, { ...product, quantity: 1 }];
     }
 
+    setCart(updatedCart);
     localStorage.setItem('cart', JSON.stringify(updatedCart));
     setShowNotification({ type: 'success', message: 'Item successfully added to cart!' });
     setTimeout(() => setShowNotification(null), 1500);
@@ -60,15 +69,13 @@ const Home = () => {
 
   return (
     <div className="container mx-auto px-4">
-      {/* Banner Section */}
       <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white py-16 px-4 text-center rounded-lg shadow-lg mb-8">
-        <h2 className="text-4xl font-bold mb-4">Welcome to Our E-Commerce Store</h2>
+        <h2 className="text-4xl font-bold mb-4">Welcome to Our SnapBuy</h2>
         <p className="text-lg mb-4">
-          Discover amazing products at unbeatable prices! Shop now and get exclusive deals!
+          Belanja produk keren dengan harga terbaik. Yuk, mulai belanja sekarang!
         </p>
       </div>
 
-      {/* Notification Card */}
       {showNotification && (
         <div
           className={`fixed top-10 left-1/2 transform -translate-x-1/2 ${
@@ -92,6 +99,7 @@ const Home = () => {
               {truncateTitle(product.title)}
             </h3>
             <p className="text-gray-700 mb-2">${product.price.toFixed(2)}</p>
+            <p className="text-sm text-gray-500 mb-2">Stock: {product.stock}</p>
             <Link
               to={`/product/${product.id}`}
               className="text-blue-600 hover:underline mb-4"

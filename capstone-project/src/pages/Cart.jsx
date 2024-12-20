@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import { useDispatch, useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
+import { updateStock } from '../redux/slices/productSlice';
+import { FaTrash } from 'react-icons/fa';
 
 const Cart = () => {
   const [cart, setCart] = useState([]);
@@ -8,7 +10,10 @@ const Cart = () => {
   const [showNotification, setShowNotification] = useState(false);
   const [selectedItems, setSelectedItems] = useState([]);
   const [checkoutNotification, setCheckoutNotification] = useState(false);
+  const [stockError, setStockError] = useState(false);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const products = useSelector(state => state.product.items);
 
   useEffect(() => {
     const savedCart = JSON.parse(localStorage.getItem('cart')) || [];
@@ -29,6 +34,7 @@ const Cart = () => {
 
   const handleQuantityChange = (id, quantity) => {
     if (quantity > 20) {
+      // Show quantity limit notif
       setShowNotification(true);
       setTimeout(() => setShowNotification(false), 3000);
       return;
@@ -41,7 +47,31 @@ const Cart = () => {
     localStorage.setItem('cart', JSON.stringify(updatedCart));
   };
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
+    let stockIssue = false;
+
+    // Check quantity untuk ketersediaan stock dalam checkout
+    for (let id of selectedItems) {
+      const item = cart.find((item) => item.id === id);
+      const product = products.find((p) => p.id === id);
+      if (product && product.stock < item.quantity) {
+        stockIssue = true;
+        break;
+      }
+    }
+
+    if (stockIssue) {
+      setStockError(true);
+      setTimeout(() => setStockError(false), 3000);
+      return;
+    }
+
+    // Melanjutkan checkout dan memperbarui stock produk
+    for (let id of selectedItems) {
+      const item = cart.find((item) => item.id === id);
+      await dispatch(updateStock({ id, quantity: item.quantity }));
+    }
+
     const updatedCart = cart.filter((item) => !selectedItems.includes(item.id));
     setCart(updatedCart);
     localStorage.setItem('cart', JSON.stringify(updatedCart));
@@ -49,7 +79,7 @@ const Cart = () => {
     setCheckoutNotification(true);
     setTimeout(() => {
       setCheckoutNotification(false);
-      // navigate('/');
+      navigate('/');
     }, 1500);
   };
 
@@ -61,24 +91,54 @@ const Cart = () => {
     }
   };
 
+  const handleAddToCart = (id) => {
+    const product = products.find((product) => product.id === id);
+
+    // Mengecek stock limit
+    if (product && product.stock <= 0) {
+      setStockLimitReached(true);
+      setTimeout(() => setStockLimitReached(false), 3000);
+      return;
+    }
+
+    // Menambah produk
+    const existingItem = cart.find((item) => item.id === id);
+    if (existingItem) {
+      handleQuantityChange(id, existingItem.quantity + 1);
+    } else {
+      const newItem = { ...product, quantity: 1 };
+      setCart([...cart, newItem]);
+      localStorage.setItem('cart', JSON.stringify([...cart, newItem]));
+    }
+  };
+
+  const handleRemoveFromCart = (id) => {
+    const updatedCart = cart.filter((item) => item.id !== id);
+    setCart(updatedCart);
+    localStorage.setItem('cart', JSON.stringify(updatedCart));
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6 text-center">My Cart</h1>
 
-      {/* Notification Card */}
+      {/* Stock limit notif */}
+      {stockError && (
+        <div className="fixed top-10 left-1/2 transform -translate-x-1/2 bg-red-500 text-white p-4 rounded-lg shadow-lg transition-all duration-500">
+          Stock tidak mencukupi untuk checkout!
+        </div>
+      )}
+
+      {/* Quantity limit notif */}
       {showNotification && (
-        <div
-          className="fixed top-10 left-1/2 transform -translate-x-1/2 bg-red-500 text-white p-4 rounded-lg shadow-lg transition-all duration-500"
-        >
-          Stock item tidak mencukupi (max 20)!
+        <div className="fixed top-10 left-1/2 transform -translate-x-1/2 bg-red-500 text-white p-4 rounded-lg shadow-lg transition-all duration-500">
+          Batas stok melebihi (jumlah maksimum stock adalah 20)!
         </div>
       )}
 
       {checkoutNotification && (
-        <div
-          className="fixed top-10 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white p-4 rounded-lg shadow-lg transition-all duration-500"
-        >
-          Items successfully checked out!
+        <div className="fixed top-10 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white p-4 rounded-lg shadow-lg transition-all duration-500">
+          Barang berhasil di checkout!
         </div>
       )}
 
@@ -138,12 +198,18 @@ const Cart = () => {
                   </td>
                   <td className="px-4 py-2 border">
                     ${(item.price * item.quantity).toFixed(2)}
+                    <button
+                      onClick={() => handleRemoveFromCart(item.id)}
+                      className="ml-2 text-red-500 hover:text-red-700"
+                    >
+                      <FaTrash />
+                    </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <div className="text-right">
+          <div className="text-right flex justify-between items-center">
             <h2 className="text-2xl font-semibold mb-4">Total: ${total.toFixed(2)}</h2>
             <button
               onClick={handleCheckout}
